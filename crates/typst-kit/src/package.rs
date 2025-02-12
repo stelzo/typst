@@ -5,10 +5,9 @@ use std::path::{Path, PathBuf};
 
 use ecow::eco_format;
 use once_cell::sync::OnceCell;
+use serde::Deserialize;
 use typst_library::diag::{bail, PackageError, PackageResult, StrResult};
-use typst_syntax::package::{
-    PackageInfo, PackageSpec, PackageVersion, VersionlessPackageSpec,
-};
+use typst_syntax::package::{PackageSpec, PackageVersion, VersionlessPackageSpec};
 
 use crate::download::{Downloader, Progress};
 
@@ -37,7 +36,7 @@ pub struct PackageStorage {
     /// The downloader used for fetching the index and packages.
     downloader: Downloader,
     /// The cached index of the default namespace.
-    index: OnceCell<Vec<PackageInfo>>,
+    index: OnceCell<Vec<serde_json::Value>>,
 }
 
 impl PackageStorage {
@@ -50,6 +49,27 @@ impl PackageStorage {
         downloader: Downloader,
         workdir: Option<PathBuf>,
     ) -> Self {
+        Self::with_index(
+            package_vendor_path,
+            package_cache_path,
+            package_path,
+            downloader,
+            OnceCell::new(),
+            workdir,
+        )
+    }
+
+    /// Creates a new package storage with a pre-defined index.
+    ///
+    /// Useful for testing.
+    fn with_index(
+        package_vendor_path: Option<PathBuf>,
+        package_cache_path: Option<PathBuf>,
+        package_path: Option<PathBuf>,
+        downloader: Downloader,
+        index: OnceCell<Vec<serde_json::Value>>,
+        workdir: Option<PathBuf>,
+    ) -> Self {
         Self {
             package_vendor_path: package_vendor_path
                 .or_else(|| workdir.map(|workdir| workdir.join(DEFAULT_VENDOR_SUBDIR))),
@@ -60,7 +80,7 @@ impl PackageStorage {
                 dirs::data_dir().map(|data_dir| data_dir.join(DEFAULT_PACKAGES_SUBDIR))
             }),
             downloader,
-            index: OnceCell::new(),
+            index,
         }
     }
 
@@ -128,6 +148,7 @@ impl PackageStorage {
             // version.
             self.download_index()?
                 .iter()
+                .filter_map(|value| MinimalPackageInfo::deserialize(value).ok())
                 .filter(|package| package.name == spec.name)
                 .map(|package| package.version)
                 .max()
@@ -150,7 +171,7 @@ impl PackageStorage {
     }
 
     /// Download the package index. The result of this is cached for efficiency.
-    pub fn download_index(&self) -> StrResult<&[PackageInfo]> {
+    pub fn download_index(&self) -> StrResult<&[serde_json::Value]> {
         self.index
             .get_or_try_init(|| {
                 let url = format!("{DEFAULT_REGISTRY}/{DEFAULT_NAMESPACE}/index.json");
@@ -203,5 +224,59 @@ impl PackageStorage {
             fs::remove_dir_all(package_dir).ok();
             PackageError::MalformedArchive(Some(eco_format!("{err}")))
         })
+    }
+}
+
+/// Minimal information required about a package to determine its latest
+/// version.
+#[derive(Deserialize)]
+struct MinimalPackageInfo {
+    name: String,
+    version: PackageVersion,
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn lazy_deser_index() {
+        let storage = PackageStorage::with_index(
+            None,
+            None,
+            None,
+            Downloader::new("typst/test"),
+            OnceCell::with_value(vec![
+                serde_json::json!({
+                    "name": "charged-ieee",
+                    "version": "0.1.0",
+                    "entrypoint": "lib.typ",
+                }),
+                serde_json::json!({
+                    "name": "unequivocal-ams",
+                    // This version number is currently not valid, so this package
+                    // can't be parsed.
+                    "version": "0.2.0-dev",
+                    "entrypoint": "lib.typ",
+                }),
+            ]),
+            None,
+        );
+
+        let ieee_version = storage.determine_latest_version(&VersionlessPackageSpec {
+            namespace: "preview".into(),
+            name: "charged-ieee".into(),
+        });
+        assert_eq!(ieee_version, Ok(PackageVersion { major: 0, minor: 1, patch: 0 }));
+
+        let ams_version = storage.determine_latest_version(&VersionlessPackageSpec {
+            namespace: "preview".into(),
+            name: "unequivocal-ams".into(),
+        });
+        assert_eq!(
+            ams_version,
+            Err("failed to find package @preview/unequivocal-ams".into())
+        )
     }
 }
