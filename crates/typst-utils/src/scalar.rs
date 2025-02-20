@@ -44,7 +44,7 @@ impl Scalar {
 const fn is_nan(x: f64) -> bool {
     // Safety: all bit patterns are valid for u64, and f64 has no padding bits.
     // We cannot use `f64::to_bits` because it is not const.
-    let x_bits = unsafe { std::mem::transmute::<f64, u64>(x) };
+    let x_bits = x.to_bits();
     (x_bits << 1 >> (64 - 12 + 1)) == 0b0_111_1111_1111 && (x_bits << 12) != 0
 }
 
