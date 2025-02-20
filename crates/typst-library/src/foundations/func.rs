@@ -440,7 +440,7 @@ impl PartialEq for Func {
 impl PartialEq<&NativeFuncData> for Func {
     fn eq(&self, other: &&NativeFuncData) -> bool {
         match &self.repr {
-            Repr::Native(native) => native.function == other.function,
+            Repr::Native(native) => std::ptr::fn_addr_eq(native.function, other.function),
             _ => false,
         }
     }
