@@ -38,23 +38,6 @@ pub struct PackageStorage {
 impl PackageStorage {
     /// Creates a new package storage for the given package paths. Falls back to
     /// the recommended XDG directories if they are `None`.
-    /*pub fn new(
-        package_vendor_path: Option<PathBuf>,
-        package_cache_path: Option<PathBuf>,
-        package_path: Option<PathBuf>,
-        downloader: Downloader,
-        workdir: Option<PathBuf>,
-    ) -> Self {
-        Self::with_index(
-            package_vendor_path,
-            package_cache_path,
-            package_path,
-            downloader,
-            OnceCell::new(),
-            workdir,
-        )
-    }*/
-
     pub fn new(
         package_vendor_path: Option<PathBuf>,
         package_cache_path: Option<PathBuf>,
@@ -75,31 +58,6 @@ impl PackageStorage {
             index: OnceCell::new(),
         }
     }
-
-    /// Creates a new package storage with a pre-defined index.
-    ///
-    /// Useful for testing.
-    /*fn with_index(
-        package_vendor_path: Option<PathBuf>,
-        package_cache_path: Option<PathBuf>,
-        package_path: Option<PathBuf>,
-        downloader: Downloader,
-        index: OnceCell<Vec<serde_json::Value>>,
-        workdir: Option<PathBuf>,
-    ) -> Self {
-        Self {
-            package_vendor_path: package_vendor_path
-                .or_else(|| workdir.map(|workdir| workdir.join(DEFAULT_VENDOR_SUBDIR))),
-            package_cache_path: package_cache_path.or_else(|| {
-                dirs::cache_dir().map(|cache_dir| cache_dir.join(DEFAULT_PACKAGES_SUBDIR))
-            }),
-            package_path: package_path.or_else(|| {
-                dirs::data_dir().map(|data_dir| data_dir.join(DEFAULT_PACKAGES_SUBDIR))
-            }),
-            downloader,
-            index,
-        }
-    }*/
 
     /// Returns the path at which non-local packages should be stored when
     /// downloaded.
@@ -228,55 +186,3 @@ impl PackageStorage {
         }
     }
 }
-
-/*
-/// Minimal information required about a package to determine its latest
-/// version.
-#[derive(Deserialize)]
-struct MinimalPackageInfo {
-    name: String,
-    version: PackageVersion,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn lazy_deser_index() {
-        let storage = PackageStorage::with_index(
-            None,
-            None,
-            Downloader::new("typst/test"),
-            OnceCell::with_value(vec![
-                serde_json::json!({
-                    "name": "charged-ieee",
-                    "version": "0.1.0",
-                    "entrypoint": "lib.typ",
-                }),
-                serde_json::json!({
-                    "name": "unequivocal-ams",
-                    // This version number is currently not valid, so this package
-                    // can't be parsed.
-                    "version": "0.2.0-dev",
-                    "entrypoint": "lib.typ",
-                }),
-            ]),
-        );
-
-        let ieee_version = storage.determine_latest_version(&VersionlessPackageSpec {
-            namespace: "preview".into(),
-            name: "charged-ieee".into(),
-        });
-        assert_eq!(ieee_version, Ok(PackageVersion { major: 0, minor: 1, patch: 0 }));
-
-        let ams_version = storage.determine_latest_version(&VersionlessPackageSpec {
-            namespace: "preview".into(),
-            name: "unequivocal-ams".into(),
-        });
-        assert_eq!(
-            ams_version,
-            Err("failed to find package @preview/unequivocal-ams".into())
-        )
-    }
-}*/
