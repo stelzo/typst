@@ -58,9 +58,7 @@ use crate::loading::{DataSource, Load, Readable};
 #[func(scope, title = "XML")]
 pub fn xml(
     engine: &mut Engine,
-    /// A path to an XML file or raw XML bytes.
-    ///
-    /// For more details about paths, see the [Paths section]($syntax/#paths).
+    /// A [path]($syntax/#paths) to an XML file or raw XML bytes.
     source: Spanned<DataSource>,
 ) -> SourceResult<Value> {
     let data = source.load(engine.world)?;
@@ -77,10 +75,8 @@ pub fn xml(
 #[scope]
 impl xml {
     /// Reads structured data from an XML string/bytes.
-    ///
-    /// This function is deprecated. The [`xml`] function now accepts bytes
-    /// directly.
     #[func(title = "Decode XML")]
+    #[deprecated = "`xml.decode` is deprecated, directly pass bytes to `xml` instead"]
     pub fn decode(
         engine: &mut Engine,
         /// XML data.
