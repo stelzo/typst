@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::package_downloads::{Downloader, PackageDownloader, Progress};
 use ecow::eco_format;
 use once_cell::sync::OnceCell;
+
 use typst_library::diag::{PackageError, PackageResult, StrResult};
 use typst_syntax::package::{
     PackageInfo, PackageSpec, PackageVersion, VersionlessPackageSpec,
@@ -14,6 +15,9 @@ pub const DEFAULT_PACKAGES_SUBDIR: &str = "typst/packages";
 
 /// The default vendor sub directory within the project root.
 pub const DEFAULT_VENDOR_SUBDIR: &str = "vendor";
+
+/// The public namespace in the default Typst registry.
+pub const DEFAULT_NAMESPACE: &str = "preview";
 
 /// Holds information about where packages should be stored and downloads them
 /// on demand, if possible.
@@ -116,24 +120,6 @@ impl PackageStorage {
         &self,
         spec: &VersionlessPackageSpec,
     ) -> StrResult<PackageVersion> {
-        // Same logical flow as per package download. Check package path, then check online.
-        // Do not check in the data directory because the latter is not intended for storage
-        // of local packages.
-        let subdir = format!("{}/{}", spec.namespace, spec.name);
-        let res = self
-            .package_path
-            .iter()
-            .flat_map(|dir| std::fs::read_dir(dir.join(&subdir)).ok())
-            .flatten()
-            .filter_map(|entry| entry.ok())
-            .map(|entry| entry.path())
-            .filter_map(|path| path.file_name()?.to_string_lossy().parse().ok())
-            .max();
-
-        if let Some(version) = res {
-            return Ok(version);
-        }
-
         self.download_index(spec)?
             .iter()
             .filter(|package| package.name == spec.name)
