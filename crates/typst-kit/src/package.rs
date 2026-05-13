@@ -111,7 +111,6 @@ impl PackageStorage {
     ) -> PackageResult<PathBuf> {
         let subdir = format!("{}/{}/{}", spec.namespace, spec.name, spec.version);
 
-        // Read from vendor dir if it exists.
         if let Some(vendor_dir) = &self.package_vendor_path
             && let Ok(true) = vendor_dir.try_exists()
         {
@@ -124,20 +123,16 @@ impl PackageStorage {
         if let Some(packages_dir) = &self.package_path {
             let dir = packages_dir.join(&subdir);
             if dir.exists() {
-                // no need to download, already in the path.
                 return Ok(dir);
             }
         }
 
-        // package was not in the package_path. check if it has been cached
         if let Some(cache_dir) = &self.package_cache_path {
             let dir = cache_dir.join(&subdir);
             if dir.exists() {
-                //package was cached, so return the cached directory
                 return Ok(dir);
             }
 
-            // Download from network if it doesn't exist yet.
             self.download_package(spec, &dir, progress)?;
             if dir.exists() {
                 return Ok(dir);
@@ -171,9 +166,6 @@ impl PackageStorage {
     }
 
     /// Download a package over the network.
-    ///
-    /// # Panics
-    /// Panics if the package spec namespace isn't `DEFAULT_NAMESPACE`.
     fn download_package(
         &self,
         spec: &PackageSpec,
@@ -192,41 +184,3 @@ impl PackageStorage {
         }
     }
 }
-
-// /// Minimal information required about a package to determine its latest
-// /// version.
-// #[derive(Deserialize)]
-// struct MinimalPackageInfo {
-//     name: String,
-//     version: PackageVersion,
-// }
-
-// /// A temporary directory that is a automatically cleaned up.
-// struct Tempdir(PathBuf);
-
-// impl Tempdir {
-//     /// Creates a directory at the path and auto-cleans it.
-//     fn create(path: PathBuf) -> io::Result<Self> {
-//         std::fs::create_dir_all(&path)?;
-//         Ok(Self(path))
-//     }
-// }
-
-// impl Drop for Tempdir {
-//     fn drop(&mut self) {
-//         _ = fs::remove_dir_all(&self.0);
-//     }
-// }
-
-// impl AsRef<Path> for Tempdir {
-//     fn as_ref(&self) -> &Path {
-//         &self.0
-//     }
-// }
-
-// /// Enriches an I/O error with a message and turns it into a
-// /// `PackageError::Other`.
-// #[cold]
-// fn error(message: &str, err: io::Error) -> PackageError {
-//     PackageError::Other(Some(eco_format!("{message}: {err}")))
-// }

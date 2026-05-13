@@ -1,8 +1,10 @@
 use std::fmt::Write;
 use std::ops::Range;
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use ecow::eco_vec;
+use regex::{Captures, Regex};
 use tiny_skia as sk;
 use typst::diag::{SourceDiagnostic, SourceResult, Warned};
 use typst::layout::{Abs, Frame, FrameItem, PagedDocument, Transform};
@@ -238,16 +240,17 @@ impl<'a> Runner<'a> {
             return;
         }
 
-        let message = if diag.message.contains("\\u{") {
-            &diag.message
-        } else {
-            &diag.message.replace("\\", "/")
-        };
         let range = self.world.range(diag.span);
-        self.validate_note(kind, diag.span.id(), range.clone(), message);
+        self.validate_note(kind, diag.span.id(), range.clone(), &diag.message);
 
         // Check hints.
         for hint in &diag.hints {
+            // HACK: This hint only gets emitted in debug builds, so filter it
+            // out to make the test suite also pass for release builds.
+            if hint == "set `RUST_BACKTRACE` to `1` or `full` to capture a backtrace" {
+                continue;
+            }
+
             self.validate_note(NoteKind::Hint, diag.span.id(), range.clone(), hint);
         }
     }
@@ -264,6 +267,15 @@ impl<'a> Runner<'a> {
         range: Option<Range<usize>>,
         message: &str,
     ) {
+        // HACK: Replace backslashes path sepators with slashes for cross
+        // platform reproducible error messages.
+        static RE: LazyLock<Regex> =
+            LazyLock::new(|| Regex::new("\\((.*) (at|in) (.+)\\)").unwrap());
+        let message = RE.replace(message, |caps: &Captures| {
+            let path = caps[3].replace('\\', "/");
+            format!("({} {} {})", &caps[1], &caps[2], path)
+        });
+
         // Try to find perfect match.
         let file = file.unwrap_or(self.test.source.id());
         if let Some((i, _)) = self.test.notes.iter().enumerate().find(|&(i, note)| {

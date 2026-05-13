@@ -13,9 +13,9 @@ mod query;
 mod server;
 mod terminal;
 mod timings;
-// #[cfg(feature = "self-update")]
-// mod update;
 mod vendor;
+#[cfg(feature = "self-update")]
+mod update;
 mod watch;
 mod world;
 
@@ -148,7 +148,6 @@ fn serialize(
     }
 }
 
-// #[cfg(not(feature = "self-update"))]
 mod update {
     use typst::diag::{StrResult, bail};
 
