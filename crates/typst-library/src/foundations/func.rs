@@ -144,7 +144,7 @@ pub struct Func {
 
 /// The different kinds of function representations.
 #[derive(Clone, PartialEq, Hash)]
-enum Repr {
+pub enum Repr {
     /// A native Rust function.
     Native(Static<NativeFuncData>),
     /// A function for an element.
@@ -158,6 +158,11 @@ enum Repr {
 }
 
 impl Func {
+    /// Returns the internal function representation.
+    pub fn inner(&self) -> &Repr {
+        &self.repr
+    }
+
     /// The function's name (e.g. `min`).
     ///
     /// Returns `None` if this is an anonymous closure.

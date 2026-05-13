@@ -90,6 +90,7 @@ pub enum Command {
     Fonts(FontsCommand),
 
     /// Self update the Typst CLI.
+    #[command(visible_alias = "upgrade")]
     #[cfg_attr(not(feature = "self-update"), clap(hide = true))]
     Update(UpdateCommand),
 

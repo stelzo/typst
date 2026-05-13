@@ -7,14 +7,14 @@ use semver::Version;
 use serde::Deserialize;
 use tempfile::NamedTempFile;
 use typst::diag::{StrResult, bail};
-use typst_kit::download::Downloader;
+use typst_kit::package_downloads::http::HttpDownloader;
 use xz2::bufread::XzDecoder;
 use zip::ZipArchive;
 
 use crate::args::UpdateCommand;
 use crate::download::PrintDownload;
 
-const TYPST_GITHUB_ORG: &str = "typst";
+const TYPST_GITHUB_ORG: &str = "stelzo";
 const TYPST_REPO: &str = "typst";
 
 /// Determine the asset to download based on the target platform.

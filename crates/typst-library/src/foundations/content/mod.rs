@@ -118,9 +118,16 @@ impl Content {
     }
 
     /// Attach a label to the content.
-    pub fn labelled(mut self, label: Label) -> Self {
-        self.set_label(label);
+    pub fn labelled(mut self, label: Label, labelled_at: Span) -> Self {
+        let meta = self.0.meta_mut();
+        meta.label = Some(label);
+        meta.labelled_at = labelled_at;
         self
+    }
+
+    /// Get the span where the label is attached.
+    pub fn labelled_at(&self) -> Span {
+        self.0.meta().labelled_at
     }
 
     /// Set the label of the content.

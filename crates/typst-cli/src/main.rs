@@ -148,6 +148,7 @@ fn serialize(
     }
 }
 
+#[cfg(not(feature = "self-update"))]
 mod update {
     use typst::diag::{StrResult, bail};
 

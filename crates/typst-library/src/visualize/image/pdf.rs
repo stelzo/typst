@@ -30,6 +30,11 @@ impl PdfDocument {
         &self.0.pdf
     }
 
+    /// Returns the original PDF bytes.
+    pub fn data(&self) -> &Bytes {
+        &self.0.data
+    }
+
     /// Return the number of pages in the PDF.
     pub fn num_pages(&self) -> usize {
         self.0.pdf.pages().len()
