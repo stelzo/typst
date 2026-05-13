@@ -13,9 +13,9 @@ mod query;
 mod server;
 mod terminal;
 mod timings;
-mod vendor;
 #[cfg(feature = "self-update")]
 mod update;
+mod vendor;
 mod watch;
 mod world;
 
